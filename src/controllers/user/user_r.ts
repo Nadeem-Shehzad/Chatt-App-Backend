@@ -1,5 +1,6 @@
+import mongoose from "mongoose";
 import User from "../../models/user";
-import { MyContext, IUser } from "../../utils/customTypes";
+import { MyContext, IUser, SingleUserResponse, AllUsersResponse } from "../../utils/customTypes";
 
 
 export const me = async (_: any, __: any, context: MyContext): Promise<IUser> => {
@@ -17,4 +18,62 @@ export const me = async (_: any, __: any, context: MyContext): Promise<IUser> =>
    return user;
 };
 
-export const getUser = () => "Hello from Chatt-App GraphQL APIS!";
+
+export const getUser = async (_: any, { id }: { id: string }): Promise<SingleUserResponse> => {
+
+   const user = await User.findById(id);
+
+   if (!user) {
+      return { success: false, message: 'User not Found!', data: null };
+   }
+
+   return { success: true, message: 'User Detail', data: user };
+};
+
+
+export const getUsers = async (): Promise<AllUsersResponse> => {
+   const users = await User.find({});
+
+   return { success: true, message: 'All Users', data: users };
+};
+
+
+export const searchUsers = async (_: any, { name }: { name: string }): Promise<AllUsersResponse> => {
+   const users = await User.find({
+      username: { $regex: name, $options: 'i' }
+   });
+
+   return { success: true, message: 'Matched Users', data: users };
+};
+
+
+export const addContact = async (_: any, { id }: { id: string }, context: MyContext): Promise<SingleUserResponse> => {
+
+   const user = await User.findById(context.userId);
+   if(!user){
+      return { success: false, message: 'User not Found!', data: null };
+   } 
+
+   const userId = new mongoose.Types.ObjectId(id);
+
+   if(user.contacts.includes(userId)){
+      return { success: false, message: 'User Already added to your contact list!', data: null };
+   }
+
+   user.contacts.push(userId);
+   await user.save();
+
+   return { success: true, message: 'User Added', data: null };
+};
+
+
+export const getContacts = async (_: any, __:any, context: MyContext): Promise<AllUsersResponse> => {
+
+   const user = await User.findById(context.userId).populate<{ contacts: IUser[] }>('contacts', 'username email').lean();
+
+   if(!user){
+      return { success: false, message: 'User not Found!', data: null };
+   }
+
+   return { success: true, message: 'All Users', data: user.contacts as IUser[] };
+};

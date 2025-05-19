@@ -1,10 +1,13 @@
 import { JwtPayload } from 'jsonwebtoken';
-import { Document } from 'mongoose';
+import { Document, Types } from 'mongoose';
+
 
 export interface IUser extends Document {
     username: string;
     email: string;
     password: string;
+    token?: string;
+    contacts: Types.ObjectId[];
 }
 
 export interface MyContext {
@@ -23,4 +26,16 @@ export interface AuthResponse {
     success: boolean;
     message: string;
     data: IUser | null
+}
+
+export interface SingleUserResponse {
+    success: boolean;
+    message: string;
+    data: IUser | null
+}
+
+export interface AllUsersResponse {
+    success: boolean;
+    message: string;
+    data: IUser[] | null
 }
