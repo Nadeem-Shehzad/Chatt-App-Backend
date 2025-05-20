@@ -8,8 +8,8 @@ import './utils/types';
 import { ApolloServer } from '@apollo/server';
 import { expressMiddleware } from '@apollo/server/express4';
 import { ExpressContextFunctionArgument } from '@apollo/server/express4';
-import { typeDefs } from './graphql/schemas/user/user';
-import { resolvers } from './graphql/resolvers/user';
+import { typeDefs } from './graphql/schemas/allSchemas';
+import { resolvers } from './graphql/resolvers/allResolvers';
 import { MyContext } from './utils/customTypes';
 
 import authRoutes from './routes/auth';
