@@ -2,9 +2,7 @@ import {
    me,
    getUser,
    getUsers,
-   searchUsers,
-   addContact,
-   getContacts
+   searchUsers
 } from '../../controllers/user/user_r';
 
 
@@ -13,11 +11,10 @@ export const userResolvers = {
       me: me,
       getUser: getUser,
       getUsers: getUsers,
-      searchUser: searchUsers,
-      getContacts: getContacts
+      searchUser: searchUsers
    },
 
-   Mutation: {
-      addContact: addContact
-   }
+   // Mutation: {
+      
+   // }
 }
