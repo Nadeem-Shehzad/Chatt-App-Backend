@@ -1,5 +1,6 @@
 import { userResolvers } from "./user";
 import { messageResolvers } from "./message";
+import { contactResolver } from "./contact";
 
 
 export const resolvers = {
@@ -8,7 +9,8 @@ export const resolvers = {
         ...messageResolvers.Query
     },
     Mutation: {
-        ...userResolvers.Mutation,
-        ...messageResolvers.Mutation
+        //...userResolvers.Mutation,
+        ...messageResolvers.Mutation,
+        ...contactResolver.Mutation
     }
 }
