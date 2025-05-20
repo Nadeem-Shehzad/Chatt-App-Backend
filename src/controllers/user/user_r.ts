@@ -47,33 +47,13 @@ export const searchUsers = async (_: any, { name }: { name: string }): Promise<A
 };
 
 
-export const addContact = async (_: any, { id }: { id: string }, context: MyContext): Promise<SingleUserResponse> => {
+// export const getContacts = async (_: any, __:any, context: MyContext): Promise<AllUsersResponse> => {
 
-   const user = await User.findById(context.userId);
-   if(!user){
-      return { success: false, message: 'User not Found!', data: null };
-   } 
+//    const user = await User.findById(context.userId).populate<{ contacts: IUser[] }>('contacts', 'username email').lean();
 
-   const userId = new mongoose.Types.ObjectId(id);
+//    if(!user){
+//       return { success: false, message: 'User not Found!', data: null };
+//    }
 
-   if(user.contacts.includes(userId)){
-      return { success: false, message: 'User Already added to your contact list!', data: null };
-   }
-
-   user.contacts.push(userId);
-   await user.save();
-
-   return { success: true, message: 'User Added', data: null };
-};
-
-
-export const getContacts = async (_: any, __:any, context: MyContext): Promise<AllUsersResponse> => {
-
-   const user = await User.findById(context.userId).populate<{ contacts: IUser[] }>('contacts', 'username email').lean();
-
-   if(!user){
-      return { success: false, message: 'User not Found!', data: null };
-   }
-
-   return { success: true, message: 'All Users', data: user.contacts as IUser[] };
-};
+//    return { success: true, message: 'All Users', data: user.contacts as IUser[] };
+// };
