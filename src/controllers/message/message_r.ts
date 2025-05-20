@@ -4,6 +4,7 @@ import User from '../../models/user';
 import { userSocketMap } from '../../socket/socket';
 import { IMessage, IMessageDTO, MessageResponse, MyContext } from '../../utils/customTypes';
 import { getSocketInstance } from '../../utils/socketInstance';
+import Contact from '../../models/contact';
 
 
 export const sendMessage = async (_: any, { receiverId, content }: { receiverId: string, content: string }, context: MyContext): Promise<MessageResponse> => {
@@ -24,7 +25,22 @@ export const sendMessage = async (_: any, { receiverId, content }: { receiverId:
          return { success: false, message: 'Receiver not found', data: null };
       }
 
-      const createdMessage  = await Message.create({
+      const isContactAccepted  = await Contact.findOne({
+         $or: [
+            { requester: senderId, receiver: receiverId, status: 'accepted' },
+            { requester: receiverId, receiver: senderId, status: 'accepted' },
+         ]
+      });
+
+      if (!isContactAccepted ) {
+         return {
+            success: false,
+            message: 'You cannot message this user unless contact request is accepted.',
+            data: null,
+         };
+      }
+
+      const createdMessage = await Message.create({
          sender: senderId,
          receiver: receiverId,
          content,
@@ -41,11 +57,11 @@ export const sendMessage = async (_: any, { receiverId, content }: { receiverId:
             createdAt: createdMessage.createdAt,
          });
 
-         createdMessage .delivered = true;
-         await createdMessage .save();
+         createdMessage.delivered = true;
+         await createdMessage.save();
       }
 
-      const savedMessage: IMessageDTO  = {
+      const savedMessage: IMessageDTO = {
          id: createdMessage._id as Types.ObjectId,
          sender: createdMessage.sender,
          receiver: createdMessage.receiver,
