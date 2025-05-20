@@ -2,7 +2,7 @@ import { gql } from 'graphql-tag';
 import { UserTypes, ResponseTypes } from './types';
 
 
-export const typeDefs = gql`
+export const userTypeDefs = gql`
 
   ${UserTypes} 
   ${ResponseTypes}
