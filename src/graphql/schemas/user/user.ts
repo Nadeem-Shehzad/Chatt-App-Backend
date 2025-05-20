@@ -12,10 +12,9 @@ export const userTypeDefs = gql`
     getUser(id: String!): GetUserResponse!
     getUsers: GetUsersResponse!
     searchUser(name: String!): GetUsersResponse
-    getContacts: GetUsersResponse
   }
 
-  type Mutation {
-    addContact(id: String!): GetUserResponse!
-  }
+  # type Mutation {
+    
+  # }
 `; 
