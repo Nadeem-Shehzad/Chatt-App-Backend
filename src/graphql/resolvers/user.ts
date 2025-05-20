@@ -8,7 +8,7 @@ import {
 } from '../../controllers/user/user_r';
 
 
-export const resolvers = {
+export const userResolvers = {
    Query: {
       me: me,
       getUser: getUser,
