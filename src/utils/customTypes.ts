@@ -39,3 +39,31 @@ export interface AllUsersResponse {
     message: string;
     data: IUser[] | null
 }
+
+
+// messages 
+export interface IMessage extends Document {
+    id: Types.ObjectId;
+    sender: Types.ObjectId;
+    receiver: Types.ObjectId;
+    content: string;
+    delivered: Boolean;
+}
+
+export interface IMessageDTO {
+  id: Types.ObjectId;
+  sender: Types.ObjectId;
+  receiver: Types.ObjectId;
+  content: string;
+  delivered: boolean;
+}
+
+export interface MessageResponse {
+    success: boolean;
+    message: string;
+    data: IMessageDTO  | null
+}
+
+export interface DecodedToken {
+  userId: string;
+}
