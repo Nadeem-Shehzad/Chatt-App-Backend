@@ -57,7 +57,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
             email: user.email
          },
          process.env.JWT_SECRET as string,
-         { expiresIn: '2h' }
+         { expiresIn: '1d' }
       );
 
       await User.findByIdAndUpdate(
