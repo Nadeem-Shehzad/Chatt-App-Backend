@@ -8,6 +8,10 @@ export const messageTypeDefs = gql`
  ${MessageResponse}
 
 
+ type Query{
+   getMessages: String!
+ }
+
  type Mutation{
     sendMessage(receiverId: ID!, content: String!): MessageResponse
  }

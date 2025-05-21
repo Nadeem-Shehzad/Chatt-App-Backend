@@ -43,11 +43,13 @@ export interface AllUsersResponse {
 
 // messages 
 export interface IMessage extends Document {
-   id: Types.ObjectId;
+   _id: Types.ObjectId;
    sender: Types.ObjectId;
    receiver: Types.ObjectId;
    content: string;
    delivered: Boolean;
+   createdAt: Date;
+   updatedAt: Date;
 }
 
 export interface IMessageDTO {

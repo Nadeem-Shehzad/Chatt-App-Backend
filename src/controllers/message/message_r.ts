@@ -1,43 +1,38 @@
 import { Types } from 'mongoose';
 import Message from '../../models/message';
-import User from '../../models/user';
-import { userSocketMap } from '../../socket/socket';
-import { IMessage, IMessageDTO, MessageResponse, MyContext } from '../../utils/customTypes';
-import { getSocketInstance } from '../../utils/socketInstance';
+import { IMessageDTO, MessageResponse, MyContext } from '../../utils/customTypes';
 import Contact from '../../models/contact';
+import { compose, ErrorHandling, isAuthenticated, checkContent } from '../../middlewares/common';
+import { checkContactStatus, sendNewContactRequest, sendMessageToReceiver } from '../../utils/utils';
 
 
-export const sendMessage = async (_: any, { receiverId, content }: { receiverId: string, content: string }, context: MyContext): Promise<MessageResponse> => {
-   const senderId = context.userId;
+export const sendMessage = compose(ErrorHandling, isAuthenticated, checkContent)
+   (async (_: any, { receiverId, content }: { receiverId: string, content: string }, context: MyContext): Promise<MessageResponse> => {
 
-   try {
+      const senderId = context.userId;
 
-      if (!senderId) {
-         return { success: false, message: 'Unauthorized', data: null };
+      if (!senderId || !receiverId) {
+         return {
+            success: false,
+            message: 'Sender or receiver not found.',
+            data: null,
+         };
       }
 
-      if (!content.trim()) {
-         return { success: false, message: 'Message content is empty', data: null };
-      }
-
-      const receiverExists = await User.findById(receiverId);
-      if (!receiverExists) {
-         return { success: false, message: 'Receiver not found', data: null };
-      }
-
-      const isContactAccepted  = await Contact.findOne({
+      const existingContact = await Contact.findOne({
          $or: [
-            { requester: senderId, receiver: receiverId, status: 'accepted' },
-            { requester: receiverId, receiver: senderId, status: 'accepted' },
+            { requester: senderId, receiver: receiverId },
+            { requester: receiverId, receiver: senderId }
          ]
       });
 
-      if (!isContactAccepted ) {
-         return {
-            success: false,
-            message: 'You cannot message this user unless contact request is accepted.',
-            data: null,
-         };
+      if (!existingContact) {
+         return await sendNewContactRequest({ senderId: senderId, receiverId: receiverId });
+      }
+
+      if (existingContact) {
+         const statusCheck = checkContactStatus({ contact: existingContact });
+         if (statusCheck) return statusCheck;
       }
 
       const createdMessage = await Message.create({
@@ -46,41 +41,31 @@ export const sendMessage = async (_: any, { receiverId, content }: { receiverId:
          content,
       });
 
-      const io = getSocketInstance();
-
-      const targetSocketId = userSocketMap.get(receiverId);
-      if (targetSocketId) {
-         io.to(targetSocketId).emit('newMessage', {
-            sender: senderId,
-            receiver: receiverId,
-            content,
-            createdAt: createdMessage.createdAt,
-         });
-
-         createdMessage.delivered = true;
-         await createdMessage.save();
-      }
+      const isDelivered = await sendMessageToReceiver({
+         senderId: senderId,
+         receiverId: receiverId,
+         message: createdMessage
+      });
 
       const savedMessage: IMessageDTO = {
          id: createdMessage._id as Types.ObjectId,
          sender: createdMessage.sender,
          receiver: createdMessage.receiver,
          content: createdMessage.content,
-         delivered: createdMessage.delivered,
+         delivered: isDelivered,
       };
 
       return {
          success: true,
-         message: 'Message sent successfully',
+         message: isDelivered
+            ? 'Message sent and delivered successfully'
+            : 'Message sent, but receiver is offline',
          data: savedMessage,
       };
+   });
 
-   } catch (error) {
-      console.error('Send Message Error:', error);
-      return {
-         success: false,
-         message: 'Failed to send message',
-         data: null,
-      };
-   }
-};
+
+export const getMessages = compose(ErrorHandling, isAuthenticated)(async (): Promise<String> => {
+   console.log('Welcome in GetMessages API.');
+   return 'Hi and Hello ...';
+});

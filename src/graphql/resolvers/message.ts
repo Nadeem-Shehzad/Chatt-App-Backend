@@ -1,12 +1,12 @@
-import { sendMessage } from "../../controllers/message/message_r"
+import { sendMessage, getMessages } from "../../controllers/message/message_r"
 
 
 export const messageResolvers = {
-    Query:{
-
+    Query: {
+        getMessages: getMessages
     },
-    
-    Mutation:{
+
+    Mutation: {
         sendMessage: sendMessage
     }
 }
