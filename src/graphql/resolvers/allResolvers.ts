@@ -6,6 +6,7 @@ import { contactResolver } from "./contact";
 export const resolvers = {
     Query: {
         ...userResolvers.Query,
+        ...contactResolver.Query,
         ...messageResolvers.Query
     },
     Mutation: {
