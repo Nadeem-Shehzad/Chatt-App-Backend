@@ -53,11 +53,13 @@ export interface IMessage extends Document {
 }
 
 export interface IMessageDTO {
-   id: Types.ObjectId;
+   _id: Types.ObjectId;
    sender: Types.ObjectId;
    receiver: Types.ObjectId;
    content: string;
    delivered: boolean;
+   createdAt: Date;
+   updatedAt: Date;
 }
 
 export interface MessageResponse {
@@ -65,6 +67,32 @@ export interface MessageResponse {
    message: string;
    data: IMessageDTO | null
 }
+
+export interface MessagesResponse {
+   success: boolean;
+   message: string;
+   data: IMessageDTO[] | null
+}
+
+export interface IUserSummary {
+  _id: Types.ObjectId;
+  username: string;
+}
+
+export interface ChatSummary {
+  user: IUserSummary;
+  lastMessage: string;
+  time: string; // ISO string from createdAt
+}
+
+export interface AllChatsResponse {
+   success: boolean;
+   message: string;
+   data: ChatSummary[] | null
+}
+
+
+
 
 export interface DecodedToken {
    userId: string;
@@ -83,4 +111,35 @@ export interface ContactResponse {
    success: boolean;
    message: string;
    data: IContact | null
+}
+
+
+export interface IContactUser extends Document {
+   _id: Types.ObjectId;
+   username: string;
+   email: string
+}
+
+export interface NContact{
+   _id: Types.ObjectId;
+   user: IContactUser;
+   status: 'pending' | 'accepted' | 'blocked';
+}
+
+export interface ContactsResponse {
+   success: boolean;
+   message: string;
+   data: NContact[] | null
+}
+
+
+export interface IOnlineUser{
+   _id: Types.ObjectId;
+   username: string;
+}
+
+export interface OnlineUsersResponse{
+   success: boolean;
+   message: string;
+   data: IOnlineUser[] | null
 }
