@@ -1,9 +1,10 @@
 import { Types } from 'mongoose';
 import Message from '../../models/message';
-import { IMessageDTO, MessageResponse, MyContext } from '../../utils/customTypes';
+import { IMessageDTO, MessageResponse, MessagesResponse, MyContext, AllChatsResponse, ChatSummary } from '../../utils/customTypes';
 import Contact from '../../models/contact';
 import { compose, ErrorHandling, isAuthenticated, checkContent } from '../../middlewares/common';
 import { checkContactStatus, sendNewContactRequest, sendMessageToReceiver } from '../../utils/utils';
+import User from '../../models/user';
 
 
 export const sendMessage = compose(ErrorHandling, isAuthenticated, checkContent)
@@ -48,11 +49,13 @@ export const sendMessage = compose(ErrorHandling, isAuthenticated, checkContent)
       });
 
       const savedMessage: IMessageDTO = {
-         id: createdMessage._id as Types.ObjectId,
+         _id: createdMessage._id as Types.ObjectId,
          sender: createdMessage.sender,
          receiver: createdMessage.receiver,
          content: createdMessage.content,
          delivered: isDelivered,
+         createdAt: createdMessage.createdAt,
+         updatedAt: createdMessage.updatedAt
       };
 
       return {
@@ -65,7 +68,113 @@ export const sendMessage = compose(ErrorHandling, isAuthenticated, checkContent)
    });
 
 
-export const getMessages = compose(ErrorHandling, isAuthenticated)(async (): Promise<String> => {
-   console.log('Welcome in GetMessages API.');
-   return 'Hi and Hello ...';
+export const getMessages = compose(ErrorHandling, isAuthenticated)(async (_: any, { receiverId }: { receiverId: string }, context: MyContext): Promise<MessagesResponse> => {
+
+   const senderId = context.userId;
+   const messages = await Message.find({
+      $or: [
+         { sender: senderId, receiver: receiverId },
+         { sender: receiverId, receiver: senderId }
+      ]
+   });
+
+   return {
+      success: true,
+      message: 'All Messages',
+      data: messages
+   };
+});
+
+
+export const getAllChats = compose(ErrorHandling, isAuthenticated)(async (_: any, __: any, context: MyContext): Promise<AllChatsResponse> => {
+
+   const objectUserId = new Types.ObjectId(context.userId);
+
+   // Aggregate to get last message per chat partner
+   const messages = await Message.aggregate([
+      {
+         $match: {
+            $or: [
+               { sender: objectUserId },
+               { receiver: objectUserId }
+            ]
+         }
+      },
+      {
+         $sort: { createdAt: -1 }
+      },
+      {
+         $project: {
+            sender: 1,
+            receiver: 1,
+            content: 1,
+            createdAt: 1,
+            chatUser: {
+               $cond: [
+                  { $eq: ["$sender", objectUserId] },
+                  "$receiver",
+                  "$sender"
+               ]
+            }
+         }
+      },
+      {
+         $group: {
+            _id: "$chatUser",
+            lastMessage: { $first: "$content" },
+            createdAt: { $first: "$createdAt" }
+         }
+      },
+      {
+         $sort: { createdAt: -1 }
+      }
+   ]);
+
+   //console.log("Chat summaries:", messages);
+
+   const chatSummaries = await Promise.all(
+      messages.map(async (msg) => {
+         const user = await User.findById(msg._id).lean(); // or use a batch query if needed
+
+         return {
+            user: {
+               _id: msg._id,
+               username: user?.username || 'Unknown'
+            },
+            lastMessage: msg.lastMessage,
+            time: msg.createdAt instanceof Date
+               ? msg.createdAt.toISOString()
+               : new Date().toISOString() // fallback just in case
+         };
+      })
+   );
+
+   return {
+      success: true,
+      message: 'All Chats',
+      data: chatSummaries
+   };
+});
+
+
+export const deleteMessage = compose(ErrorHandling, isAuthenticated)(async (_: any, { messageId }: { messageId: string }, context: MyContext): Promise<MessageResponse> => {
+
+   const senderId = context.userId;
+
+   const message = await Message.findById(messageId);
+   if (!message) {
+      throw new Error('Message not found!');
+   }
+
+   if (message.sender.toString() !== senderId) {
+      throw new Error(`You can't delete other's message.`);
+   }
+
+   const deletedMessage = await Message.findByIdAndDelete(messageId);
+
+   return {
+      success: true,
+      message: 'Message deleted successfully',
+      data: null
+   };
 });
