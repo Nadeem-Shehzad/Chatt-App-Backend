@@ -1,8 +1,19 @@
-import { sendContactRequest, acceptContactRequest,blockContact } from "../../controllers/contact/contact_r"
+import {
+  sendContactRequest,
+  acceptContactRequest,
+  blockContact,
+  getContacts,
+  getOnlineUsers
+} from "../../controllers/contact/contact_r"
 
 
 export const contactResolver = {
-  Mutation:{
+  Query: {
+    getContacts: getContacts,
+    getOnlineUsers: getOnlineUsers
+  },
+
+  Mutation: {
     sendContactRequest,
     acceptContactRequest,
     blockContact
