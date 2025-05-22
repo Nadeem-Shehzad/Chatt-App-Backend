@@ -75,14 +75,14 @@ export interface MessagesResponse {
 }
 
 export interface IUserSummary {
-  _id: Types.ObjectId;
-  username: string;
+   _id: Types.ObjectId;
+   username: string;
 }
 
 export interface ChatSummary {
-  user: IUserSummary;
-  lastMessage: string;
-  time: string; // ISO string from createdAt
+   user: IUserSummary;
+   lastMessage: string;
+   time: string; // ISO string from createdAt
 }
 
 export interface AllChatsResponse {
@@ -120,7 +120,7 @@ export interface IContactUser extends Document {
    email: string
 }
 
-export interface NContact{
+export interface NContact {
    _id: Types.ObjectId;
    user: IContactUser;
    status: 'pending' | 'accepted' | 'blocked';
@@ -133,13 +133,45 @@ export interface ContactsResponse {
 }
 
 
-export interface IOnlineUser{
+export interface IOnlineUser {
    _id: Types.ObjectId;
    username: string;
 }
 
-export interface OnlineUsersResponse{
+export interface OnlineUsersResponse {
    success: boolean;
    message: string;
    data: IOnlineUser[] | null
+}
+
+
+//group Types
+export interface IGroup extends Document {
+   name: string;
+   creator: Types.ObjectId;
+   description: string;
+   members: Types.ObjectId[],
+   createdAt: Date,
+   updatedAt: Date
+}
+
+export interface GroupResponse {
+   success: boolean;
+   message: string;
+   data: IGroup | null
+}
+
+export interface IGroupMessage extends Document {
+   _id: Types.ObjectId;
+   groupId: Types.ObjectId;
+   senderId: Types.ObjectId;
+   content: string;
+   createdAt: Date,
+   updatedAt: Date
+}
+
+export interface GroupMessageResponse {
+   success: boolean;
+   message: string;
+   data: IGroupMessage | null
 }

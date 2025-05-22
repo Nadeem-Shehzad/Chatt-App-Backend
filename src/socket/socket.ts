@@ -2,6 +2,7 @@ import { Server } from 'socket.io';
 import { socketAuth } from '../middlewares/socketAuth';
 import OnlineUser from '../models/onlineUser';
 import { broadcastOnlineUsers } from '../utils/utils';
+import Group from '../models/group';
 
 const userSocketMap = new Map<string, string>(); // userId -> socket.id
 
@@ -22,6 +23,16 @@ const setupSocket = (io: Server): void => {
          { upsert: true, new: true }
       );
 
+      // check user joined groups and then auto join rooms
+      const joinedGroups = await Group.find({ members: { $in: [userId] } }).select('_id');
+      if(joinedGroups.length > 0){
+         joinedGroups.forEach((group) => {
+            const roomId = (group._id as any).toString();
+            socket.join(roomId);
+            console.log(`User ${socket.id} joined group room ${roomId}`);
+         });
+      }
+
       broadcastOnlineUsers(io, userSocketMap, userId);
 
       socket.on('disconnect', async () => {
@@ -35,7 +46,7 @@ const setupSocket = (io: Server): void => {
 
          // remove from DB
          await OnlineUser.findOneAndDelete({ socketId: socket.id });
-         broadcastOnlineUsers(io, userSocketMap,userId);
+         broadcastOnlineUsers(io, userSocketMap, userId);
       });
    });
 };
