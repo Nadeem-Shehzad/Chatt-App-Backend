@@ -19,3 +19,36 @@ export const MessageResponse = gql`
     data: Message
   }
 `;
+
+
+export const MessagesResponse = gql`
+  type MessagesResponse {
+    success: Boolean!
+    message: String!
+    data: [Message]
+  }
+`;
+
+
+export const UserSummary = gql`
+  type UserSummary {
+    _id: ID!
+    username: String!
+  }
+`;
+
+export const ChatSummary = gql`
+  type ChatSummary {
+   user: UserSummary!
+   lastMessage: String!
+   time: String!
+  }
+`;
+
+export const ChatsResponse = gql`
+  type ChatsResponse {
+   success: Boolean!
+   message: String!
+   data: [ChatSummary]
+  }
+`;
