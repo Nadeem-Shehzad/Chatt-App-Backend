@@ -1,8 +1,20 @@
+import { Types } from "mongoose";
 import Contact from "../../models/contact";
 import User from "../../models/user";
 import { userSocketMap } from "../../socket/socket";
-import { MyContext, ContactResponse } from "../../utils/customTypes";
+import {
+   MyContext,
+   ContactResponse,
+   ContactsResponse,
+   NContact,
+   IContactUser,
+   OnlineUsersResponse,
+   IOnlineUser
+} from "../../utils/customTypes";
+
 import { getSocketInstance } from "../../utils/socketInstance";
+import OnlineUser from "../../models/onlineUser";
+import { compose, ErrorHandling, isAuthenticated } from "../../middlewares/common";
 
 
 
@@ -93,6 +105,7 @@ export const acceptContactRequest = async (_: any, { contactId }: { contactId: s
    }
 }
 
+
 export const blockContact = async (_: any, { contactId }: { contactId: string }, context: MyContext): Promise<ContactResponse> => {
    const userId = context.userId;
 
@@ -121,5 +134,55 @@ export const blockContact = async (_: any, { contactId }: { contactId: string },
    } catch (error) {
       return { success: false, message: 'Failed to Block Contact Request!', data: null };
    }
-
 }
+
+
+export const getContacts = async (_: any, __: any, context: MyContext): Promise<ContactsResponse> => {
+   const userId = context.userId;
+
+   const contacts = await Contact.find({
+      $or: [
+         { requester: userId, status: 'accepted' },
+         { receiver: userId, status: 'accepted' }
+      ]
+   }).populate('requester', 'username email').populate('receiver', 'username email');
+
+   const contactList: NContact[] = contacts.map(contact => {
+      const requester = contact.requester as any;
+      const receiver = contact.receiver as any;
+
+      const otherUser: IContactUser = requester._id.toString() === userId ? receiver : requester;
+
+      return {
+         _id: contact._id as Types.ObjectId,
+         user: otherUser,
+         status: contact.status
+      };
+   });
+
+   return {
+      success: true,
+      message: 'All Contacts',
+      data: contactList
+   }
+}
+
+
+export const getOnlineUsers = compose(ErrorHandling,isAuthenticated)(async (_: any, __: any, context: MyContext): Promise<OnlineUsersResponse> => {
+   const userId = context.userId;
+
+   const onlineUsersRaw = await OnlineUser.find({ userId: { $ne: userId } })
+      .populate<{ userId: { _id: Types.ObjectId; username: string } }>('userId', 'username')
+      .lean();
+
+   const onlineUsers: IOnlineUser[] = onlineUsersRaw.map((e) => ({
+         _id: e.userId._id,
+         username: e.userId.username,
+      }));
+
+   return {
+      success: true,
+      message: 'Online Users',
+      data: onlineUsers
+   }
+});
