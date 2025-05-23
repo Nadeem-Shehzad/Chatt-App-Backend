@@ -57,7 +57,9 @@ export interface IMessageDTO {
    sender: Types.ObjectId;
    receiver: Types.ObjectId;
    content: string;
-   delivered: boolean;
+   deliveredAt: Date | null;
+   seen: boolean;
+   seenAt: Date | null;
    createdAt: Date;
    updatedAt: Date;
 }
@@ -166,6 +168,7 @@ export interface IGroupMessage extends Document {
    groupId: Types.ObjectId;
    senderId: Types.ObjectId;
    content: string;
+   seenBy: Types.ObjectId[];
    createdAt: Date,
    updatedAt: Date
 }

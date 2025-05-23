@@ -1,5 +1,5 @@
 import { GroupResponse, MyContext, GroupMessageResponse, IGroupMessage } from "../../utils/customTypes";
-import { compose, ErrorHandling, isAuthenticated } from "../../middlewares/common";
+import { compose, ErrorHandling, groupExists, isAuthenticated } from "../../middlewares/common";
 import Group from "../../models/group";
 import User from "../../models/user";
 import { Types } from "mongoose";
@@ -171,6 +171,30 @@ export const sendMessageToGroup = compose(ErrorHandling, isAuthenticated)(async 
    return {
       success: true,
       message: `message send in group ${group.name}`,
+      data: null
+   }
+});
+
+
+export const markGroupMessageAsRead = compose(ErrorHandling, isAuthenticated, groupExists)(async (_: any, { groupId }: { groupId: string }, context: MyContext): Promise<GroupMessageResponse> => {
+
+   const userId = context.userId;
+
+   await GroupMessage.updateMany(
+      // condition
+      {
+         groupId: new Types.ObjectId(groupId),
+         seenBy: { $ne: userId }
+      },
+      // action
+      {
+         $addToSet: { seenBy: new Types.ObjectId(userId) }
+      }
+   );
+
+   return {
+      success: true,
+      message: `Messages marked as seen.`,
       data: null
    }
 });

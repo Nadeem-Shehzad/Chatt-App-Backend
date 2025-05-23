@@ -1,3 +1,4 @@
+import Group from "../models/group";
 import User from "../models/user";
 import { MyContext } from "../utils/customTypes";
 
@@ -54,4 +55,14 @@ export const checkReceiver = (resolverFunction: Function) => {
 
       return resolverFunction(parent, args, context, info);
    }
-} 
+}
+
+export const groupExists = (resolver: Function) => {
+   return async (parent: any, args: any, context: MyContext, info: any) => {
+      const group = await Group.findById(args.groupId);
+      if (!group) {
+         return { success: false, message: 'Group not found', data: null };
+      }
+      return resolver(parent, args, context, info);
+   }
+}

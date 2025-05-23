@@ -1,8 +1,10 @@
 import Contact from "../models/contact";
-import { IContact, IMessage } from "./customTypes";
+import { IContact, IMessageDTO } from "./customTypes";
 import { userSocketMap } from "../socket/socket";
 import { getSocketInstance } from "./socketInstance";
 import { Server } from "socket.io";
+import Message from "../models/message";
+
 
 export const sendNewContactRequest = async ({ senderId, receiverId }: { senderId: string; receiverId: string }) => {
 
@@ -51,24 +53,36 @@ export const checkContactStatus = ({ contact }: { contact: IContact }) => {
 }
 
 
-export const sendMessageToReceiver = async ({ senderId, receiverId, message }: { senderId: string; receiverId: string; message: IMessage }): Promise<boolean> => {
+export const sendMessageToReceiver = async ({senderId,receiverId,message}: {senderId: string;receiverId: string;message: IMessageDTO;}): Promise<boolean> => {
+   
    const io = getSocketInstance();
    const targetSocketId = userSocketMap.get(receiverId);
+
    if (targetSocketId) {
-      io.to(targetSocketId).emit('newMessage', {
+      const deliveredAt = new Date();
+
+      const messageData = {
+         _id: message._id,
          sender: senderId,
          receiver: receiverId,
          content: message.content,
          createdAt: message.createdAt,
-      });
+         deliveredAt,
+      };
 
-      message.delivered = true;
-      await message.save();
+      // Emit message to receiver
+      io.to(targetSocketId).emit('newMessage', messageData);
+
+      // Update deliveredAt in DB
+      await Message.findByIdAndUpdate(message._id, {
+         deliveredAt,
+      });
 
       return true;
    }
+
    return false;
-}
+};
 
 
 export const broadcastOnlineUsers = (io: Server, userSocketMap: Map<string, string>, newUserId: string) => {

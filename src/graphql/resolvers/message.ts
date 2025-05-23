@@ -2,6 +2,7 @@ import {
     sendMessage,
     getMessages,
     getAllChats,
+    markMessagesAsSeen,
     deleteMessage
 } from "../../controllers/message/message_r"
 
@@ -14,6 +15,7 @@ export const messageResolvers = {
 
     Mutation: {
         sendMessage: sendMessage,
+        markMessagesAsSeen: markMessagesAsSeen,
         deleteMessage: deleteMessage
     }
 }

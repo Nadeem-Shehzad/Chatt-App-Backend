@@ -1,12 +1,12 @@
 import { gql } from 'graphql-tag';
 
-import { 
-   MessageTypes, 
-   MessageResponse, 
+import {
+   MessageTypes,
+   MessageResponse,
    MessagesResponse,
    UserSummary,
    ChatSummary,
-   ChatsResponse 
+   ChatsResponse
 } from './types';
 
 
@@ -28,6 +28,7 @@ export const messageTypeDefs = gql`
 
  type Mutation{
     sendMessage(receiverId: ID!, content: String!): MessageResponse
+    markMessagesAsSeen(receiverId: ID!): MessageResponse
     deleteMessage(messageId: ID!): MessageResponse
  }
 

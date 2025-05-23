@@ -11,6 +11,7 @@ export const groupTypeDefs = gql`
     addMemberToGroup(groupId: String!, memberId: String!): GroupResponse
     removeMemberFromGroup(groupId: String!, memberId: String!): GroupResponse
     sendMessageToGroup(groupId: String!, content:String!): GroupResponse
+    markGroupMessageAsRead(groupId: String!): GroupResponse
  }
 
 `;
