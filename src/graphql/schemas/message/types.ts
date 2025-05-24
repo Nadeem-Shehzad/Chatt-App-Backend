@@ -7,7 +7,7 @@ export const MessageTypes = gql`
     sender: ID!
     receiver: ID!
     content: String!
-    delivered: Boolean!
+    #delivered: Boolean!
   }
 `;
 
@@ -42,6 +42,7 @@ export const ChatSummary = gql`
    user: UserSummary!
    lastMessage: String!
    time: String!
+   unreadCount: Int!
   }
 `;
 

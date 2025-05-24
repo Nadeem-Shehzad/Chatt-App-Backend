@@ -7,6 +7,7 @@ const UserSchema: Schema = new Schema(
       username: { type: String, required: true, trim: true },
       email: { type: String, required: true, unique: true, trim: true },
       password: { type: String, required: true },
+      lastSeen: { type: Date, default: null },
       //contacts: [{ type: Schema.Types.ObjectId, ref: 'User' }],
       token: { type: String, default: '' }
    },

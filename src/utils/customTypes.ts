@@ -6,8 +6,9 @@ export interface IUser extends Document {
    username: string;
    email: string;
    password: string;
+   lastSeen: Date;
    token?: string;
-   contacts: Types.ObjectId[];
+   //contacts: Types.ObjectId[];
 }
 
 export interface MyContext {
@@ -79,12 +80,14 @@ export interface MessagesResponse {
 export interface IUserSummary {
    _id: Types.ObjectId;
    username: string;
+   lastSeen: Date;
 }
 
 export interface ChatSummary {
    user: IUserSummary;
    lastMessage: string;
-   time: string; // ISO string from createdAt
+   time: string; 
+   unreadCount: number
 }
 
 export interface AllChatsResponse {

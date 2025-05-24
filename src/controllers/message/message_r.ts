@@ -94,75 +94,172 @@ export const getMessages = compose(ErrorHandling, isAuthenticated)(async (_: any
 });
 
 
-export const getAllChats = compose(ErrorHandling, isAuthenticated)(async (_: any, __: any, context: MyContext): Promise<AllChatsResponse> => {
+// export const getAllChats = compose(ErrorHandling, isAuthenticated)(async (_: any, __: any, context: MyContext): Promise<AllChatsResponse> => {
 
-  const objectUserId = new Types.ObjectId(context.userId);
+//   const objectUserId = new Types.ObjectId(context.userId);
 
-  // Aggregate to get last message per chat partner
-  const messages = await Message.aggregate([
-    {
-      $match: {
-        $or: [
-          { sender: objectUserId },
-          { receiver: objectUserId }
-        ]
-      }
-    },
-    {
-      $sort: { createdAt: -1 }
-    },
-    {
-      $project: {
-        sender: 1,
-        receiver: 1,
-        content: 1,
-        createdAt: 1,
-        chatUser: {
-          $cond: [
-            { $eq: ["$sender", objectUserId] },
-            "$receiver",
-            "$sender"
+//   // Aggregate to get last message per chat partner
+//   const messages = await Message.aggregate([
+//     {
+//       $match: {
+//         $or: [
+//           { sender: objectUserId },
+//           { receiver: objectUserId }
+//         ]
+//       }
+//     },
+//     {
+//       $sort: { createdAt: -1 }
+//     },
+//     {
+//       $project: {
+//         sender: 1,
+//         receiver: 1,
+//         content: 1,
+//         createdAt: 1,
+//         chatUser: {
+//           $cond: [
+//             { $eq: ["$sender", objectUserId] },
+//             "$receiver",
+//             "$sender"
+//           ]
+//         }
+//       }
+//     },
+//     {
+//       $group: {
+//         _id: "$chatUser",
+//         lastMessage: { $first: "$content" },
+//         createdAt: { $first: "$createdAt" }
+//       }
+//     },
+//     {
+//       $sort: { createdAt: -1 }
+//     }
+//   ]);
+
+//   //console.log("Chat summaries:", messages);
+
+//   const chatSummaries = await Promise.all(
+//     messages.map(async (msg) => {
+//       const user = await User.findById(msg._id).lean(); // or use a batch query if needed
+
+//       return {
+//         user: {
+//           _id: msg._id,
+//           username: user?.username || 'Unknown'
+//         },
+//         lastMessage: msg.lastMessage,
+//         time: msg.createdAt instanceof Date
+//           ? msg.createdAt.toISOString()
+//           : new Date().toISOString() // fallback just in case
+//       };
+//     })
+//   );
+
+//   return {
+//     success: true,
+//     message: 'All Chats',
+//     data: chatSummaries
+//   };
+// });
+
+
+
+export const getAllChats = compose(ErrorHandling, isAuthenticated)(
+  async (_: any, __: any, context: MyContext): Promise<AllChatsResponse> => {
+    const objectUserId = new Types.ObjectId(context.userId);
+
+    // Step 1: Get all last messages per chat
+    const messages = await Message.aggregate([
+      {
+        $match: {
+          $or: [
+            { sender: objectUserId },
+            { receiver: objectUserId }
           ]
         }
+      },
+      {
+        $sort: { createdAt: -1 }
+      },
+      {
+        $project: {
+          sender: 1,
+          receiver: 1,
+          content: 1,
+          createdAt: 1,
+          chatUser: {
+            $cond: [
+              { $eq: ["$sender", objectUserId] },
+              "$receiver",
+              "$sender"
+            ]
+          }
+        }
+      },
+      {
+        $group: {
+          _id: "$chatUser",
+          lastMessage: { $first: "$content" },
+          createdAt: { $first: "$createdAt" }
+        }
+      },
+      {
+        $sort: { createdAt: -1 }
       }
-    },
-    {
-      $group: {
-        _id: "$chatUser",
-        lastMessage: { $first: "$content" },
-        createdAt: { $first: "$createdAt" }
+    ]);
+
+    // Step 2: Get unread count for all chats in one go
+    const unreadCounts = await Message.aggregate([
+      {
+        $match: {
+          receiver: objectUserId,
+          seenAt: null
+        }
+      },
+      {
+        $group: {
+          _id: "$sender", // Group by sender of unread messages
+          unreadCount: { $sum: 1 }
+        }
       }
-    },
-    {
-      $sort: { createdAt: -1 }
-    }
-  ]);
+    ]);
 
-  //console.log("Chat summaries:", messages);
+    // Step 3: Create map of unread counts
+    const unreadMap: Record<string, number> = {};
+    unreadCounts.forEach((item) => {
+      unreadMap[item._id.toString()] = item.unreadCount;
+    });
 
-  const chatSummaries = await Promise.all(
-    messages.map(async (msg) => {
-      const user = await User.findById(msg._id).lean(); // or use a batch query if needed
+    // Step 4: Attach user info and unread count to each chat summary
+    const chatSummaries = await Promise.all(
+      messages.map(async (msg) => {
+        const user = await User.findById(msg._id).lean();
+        return {
+          user: {
+            _id: msg._id,
+            username: user?.username || 'Unknown',
+            lastSeen: user?.lastSeen instanceof Date ? user.lastSeen : new Date(0)
+          },
+          lastMessage: msg.lastMessage,
+          time: msg.createdAt instanceof Date
+            ? msg.createdAt.toISOString()
+            : new Date().toISOString(),
+          unreadCount: unreadMap[msg._id.toString()] || 0 
+        };
+      })
+    );
 
-      return {
-        user: {
-          _id: msg._id,
-          username: user?.username || 'Unknown'
-        },
-        lastMessage: msg.lastMessage,
-        time: msg.createdAt instanceof Date
-          ? msg.createdAt.toISOString()
-          : new Date().toISOString() // fallback just in case
-      };
-    })
-  );
+    return {
+      success: true,
+      message: 'All Chats',
+      data: chatSummaries
+    };
+  }
+);
 
-  return {
-    success: true,
-    message: 'All Chats',
-    data: chatSummaries
-  };
-});
+
 
 
 export const markMessagesAsSeen = compose(ErrorHandling, isAuthenticated)(async (_: any, { receiverId }: { receiverId: string }, context: MyContext): Promise<MessageResponse> => {

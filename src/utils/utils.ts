@@ -1,9 +1,11 @@
+import { Socket } from "socket.io";
 import Contact from "../models/contact";
 import { IContact, IMessageDTO } from "./customTypes";
 import { userSocketMap } from "../socket/socket";
 import { getSocketInstance } from "./socketInstance";
 import { Server } from "socket.io";
 import Message from "../models/message";
+import { Types } from "mongoose";
 
 
 export const sendNewContactRequest = async ({ senderId, receiverId }: { senderId: string; receiverId: string }) => {
@@ -53,8 +55,8 @@ export const checkContactStatus = ({ contact }: { contact: IContact }) => {
 }
 
 
-export const sendMessageToReceiver = async ({senderId,receiverId,message}: {senderId: string;receiverId: string;message: IMessageDTO;}): Promise<boolean> => {
-   
+export const sendMessageToReceiver = async ({ senderId, receiverId, message }: { senderId: string; receiverId: string; message: IMessageDTO; }): Promise<boolean> => {
+
    const io = getSocketInstance();
    const targetSocketId = userSocketMap.get(receiverId);
 
@@ -77,6 +79,18 @@ export const sendMessageToReceiver = async ({senderId,receiverId,message}: {send
       await Message.findByIdAndUpdate(message._id, {
          deliveredAt,
       });
+
+      // const unreadCount = await Message.countDocuments({
+      //    sender: senderId,
+      //    receiver: receiverId,
+      //    seenAt: null,
+      // });
+
+      // // Emit individual unread count update
+      // io.to(targetSocketId).emit('chatUnreadCount', {
+      //    senderId,
+      //    unreadCount,
+      // });
 
       return true;
    }
@@ -112,4 +126,77 @@ export const broadcastOnlineUsers = (io: Server, userSocketMap: Map<string, stri
          }
       });
    }, 200);
+};
+
+
+
+export const getUnreadMessageSummary = async (userId: string) => {
+   const summary = await Message.aggregate([
+      {
+         $match: {
+            receiver: new Types.ObjectId(userId),
+            seen: false,
+         },
+      },
+      {
+         $group: {
+            _id: "$sender",
+            unreadCount: { $sum: 1 },
+            lastMessage: { $last: "$$ROOT" },
+         },
+      },
+      {
+         $lookup: {
+            from: "users",
+            localField: "_id",
+            foreignField: "_id",
+            as: "senderInfo",
+         },
+      },
+      {
+         $unwind: "$senderInfo",
+      },
+      {
+         $project: {
+            senderId: "$_id",
+            senderName: "$senderInfo.name", // adjust fields
+            unreadCount: 1,
+            lastMessage: {
+               content: "$lastMessage.content",
+               createdAt: "$lastMessage.createdAt",
+            },
+         },
+      },
+   ]);
+
+   return summary;
+};
+
+
+export const handleUndeliveredMessages = async (userId: string, socket: Socket) => {
+   console.log(`inside--> handleUndeliveredMessages `);
+
+   const undeliveredMessages = await Message.find({
+      receiver: userId,
+      deliveredAt: null,
+   }).sort({ createdAt: 1 });
+
+   if (undeliveredMessages.length > 0) {
+      socket.emit("undeliveredMessages", undeliveredMessages);
+
+      const now = new Date();
+
+      const bulkOps = undeliveredMessages.map((msg) => ({
+         updateOne: {
+            filter: { _id: msg._id },
+            update: { $set: { deliveredAt: now } },
+         },
+      }));
+
+      await Message.bulkWrite(bulkOps);
+
+      undeliveredMessages.forEach((msg) => {
+         msg.deliveredAt = now;
+      });
+   }
 };
