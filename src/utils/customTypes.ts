@@ -7,8 +7,11 @@ export interface IUser extends Document {
    email: string;
    password: string;
    lastSeen: Date;
+   isVerified: boolean;
+   otp: string;
+   otpExpiresAt: Date | null;
    token?: string;
-   //contacts: Types.ObjectId[];
+   refreshToken?: string;
 }
 
 export interface MyContext {
@@ -86,7 +89,7 @@ export interface IUserSummary {
 export interface ChatSummary {
    user: IUserSummary;
    lastMessage: string;
-   time: string; 
+   time: string;
    unreadCount: number
 }
 
@@ -181,3 +184,18 @@ export interface GroupMessageResponse {
    message: string;
    data: IGroupMessage | null
 }
+
+interface IUserMethods {
+   isPasswordMatched(password: string): Promise<boolean>;
+}
+
+
+// custom error function
+// export interface ValidationErrorItem {
+//    path: string;
+//    msg: string;
+// }
+
+// export interface ValidationErrors {
+//    array(): ValidationErrorItem[];
+// }
