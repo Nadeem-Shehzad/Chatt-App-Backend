@@ -8,8 +8,11 @@ const UserSchema: Schema = new Schema(
       email: { type: String, required: true, unique: true, trim: true },
       password: { type: String, required: true },
       lastSeen: { type: Date, default: null },
-      //contacts: [{ type: Schema.Types.ObjectId, ref: 'User' }],
-      token: { type: String, default: '' }
+      isVerified: { type: Boolean, default: false },
+      otp: String,
+      otpExpiresAt: Date,
+      token: { type: String, default: '' },
+      refreshToken: { type: String, default: '' }
    },
    { timestamps: true }
 );
