@@ -1,11 +1,15 @@
 import { Socket } from "socket.io";
 import Contact from "../models/contact";
 import { IContact, IMessageDTO } from "./customTypes";
+import { Result, ValidationError } from 'express-validator';
 import { userSocketMap } from "../socket/socket";
 import { getSocketInstance } from "./socketInstance";
 import { Server } from "socket.io";
 import Message from "../models/message";
 import { Types } from "mongoose";
+import nodemailer, { SendMailOptions, Transporter } from 'nodemailer';
+import SMTPTransport from 'nodemailer/lib/smtp-transport';
+
 
 
 export const sendNewContactRequest = async ({ senderId, receiverId }: { senderId: string; receiverId: string }) => {
@@ -174,7 +178,6 @@ export const getUnreadMessageSummary = async (userId: string) => {
 
 
 export const handleUndeliveredMessages = async (userId: string, socket: Socket) => {
-   console.log(`inside--> handleUndeliveredMessages `);
 
    const undeliveredMessages = await Message.find({
       receiver: userId,
@@ -199,4 +202,48 @@ export const handleUndeliveredMessages = async (userId: string, socket: Socket) 
          msg.deliveredAt = now;
       });
    }
+};
+
+
+// auth 
+export const generateOTP = () => {
+   return Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit
+};
+
+
+const transporter: Transporter<SMTPTransport.SentMessageInfo> = nodemailer.createTransport({
+   host: process.env.MAIL_HOST,
+   port: Number(process.env.MAIL_PORT),
+   secure: false,
+   requireTLS: true,
+   auth: {
+      user: process.env.MAIL_USER,
+      pass: process.env.MAIL_PASSWORD,
+   },
+} as SMTPTransport.Options);
+
+
+export const sendEmail = async ({ to, subject, data }: { to: string, data: string, subject: string }): Promise<void> => {
+   try {
+      const info = await transporter.sendMail({
+         from: `"Chat-App" <${process.env.MAIL_USER}>`, 
+         to,
+         subject: subject,
+         html: data,
+      });
+
+      console.log('✅ Email sent:', info.messageId);
+   } catch (error) {
+      console.error('❌ Failed to send otp email:', error);
+   }
+}
+
+
+export const errorMsg = (errors: Result<ValidationError>): string => {
+   const firstError = errors.array({ onlyFirstError: true })[0];
+
+   const field = (firstError as any).param || (firstError as any).path || 'Field';
+   const message = (firstError as any).msg || 'Invalid input';
+
+   return `${field}: ${message}`;
 };
