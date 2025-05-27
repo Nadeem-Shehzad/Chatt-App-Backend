@@ -1,5 +1,8 @@
-import express, { Application } from 'express';
+
 import dotenv from 'dotenv';
+dotenv.config();
+
+import express, { Application } from 'express';
 import cors from 'cors';
 
 import './utils/customTypes';
@@ -23,7 +26,6 @@ import setupSocket from './socket/socket';
 import { setSocketInstance } from './utils/socketInstance';
 
 
-dotenv.config();
 const app: Application = express();
 const PORT = process.env.PORT || 3000;
 
