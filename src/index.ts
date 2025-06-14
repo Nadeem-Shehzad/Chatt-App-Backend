@@ -25,9 +25,12 @@ import { Server as SocketIOserver } from 'socket.io';
 import setupSocket from './socket/socket';
 import { setSocketInstance } from './utils/socketInstance';
 
+import { startAllKafkaConsumers } from './kafka/consumers/allConsumers';
+import { connectProducer } from './kafka/producer';
+
 
 const app: Application = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT;
 
 connectDB();
 
@@ -44,7 +47,6 @@ const io = new SocketIOserver(server, {
 // Store socket instance globally
 setSocketInstance(io);
 setupSocket(io);
-
 
 app.use(cors());
 app.use(express.json());
@@ -73,11 +75,17 @@ const startApolloServer = async (): Promise<void> => {
          };
       },
    });
-
+   
    app.use(
       '/graphql',
       gql_middlewale as unknown as express.RequestHandler
    );
+
+   // connect producer
+   await connectProducer();
+
+   // Start Kafka consumers before server starts listening
+   await startAllKafkaConsumers();
 
    server.listen(PORT, () => {
       console.log(`🚀 Server running at http://localhost:${PORT}`);
