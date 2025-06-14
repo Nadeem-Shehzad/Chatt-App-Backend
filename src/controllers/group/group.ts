@@ -2,10 +2,11 @@ import { GroupResponse, MyContext, GroupMessageResponse, IGroupMessage } from ".
 import { compose, ErrorHandling, groupExists, isAuthenticated } from "../../middlewares/common";
 import Group from "../../models/group";
 import User from "../../models/user";
-import { Types } from "mongoose";
+import mongoose, { Types } from "mongoose";
 import { getSocketInstance } from "../../utils/socketInstance";
 import { userSocketMap } from "../../socket/socket";
 import GroupMessage from "../../models/groupMessage";
+import { produceAddToGroup, produceGroupMessage, produceRemoveToGroup } from "../../kafka/producer";
 
 
 export const createGroup = compose(ErrorHandling, isAuthenticated)(async (_: any, { name, description }: { name: string, description: string }, context: MyContext): Promise<GroupResponse> => {
@@ -53,22 +54,18 @@ export const addMemberToGroup = compose(ErrorHandling, isAuthenticated)(async (_
       throw new Error('Member not Found!');
    }
 
-   const memId = new Types.ObjectId(memberId);
+   const payload = {
+      groupId,
+      memberId,
+      groupName: group.name,
+      addedBy: userId
+   };
 
-   group.members.push(memId);
-   await group.save();
-
-   //socket.io
-   const io = getSocketInstance();
-   const targetSocketId = userSocketMap.get(memberId);
-
-   if (targetSocketId) {
-      io.to(targetSocketId).emit('addedToGroup', `You have been added to Group ${group.name}`);
-   }
+   await produceAddToGroup(payload);
 
    return {
       success: true,
-      message: `${member.username} Added to Group ${group.name}.`,
+      message: `Group update requested — ${member.username} will be added shortly.`,
       data: null
    }
 });
@@ -92,29 +89,15 @@ export const removeMemberFromGroup = compose(ErrorHandling, isAuthenticated)(asy
       throw new Error('Member not Found!');
    }
 
-   const memId = new Types.ObjectId(memberId);
+   const payload = {
+      groupId,
+      memberId,
+      memberName: member.username,
+      groupName: group.name,
+      removedBy: userId
+   };
 
-   // Check if member is in the group
-   const isMember = group.members.some((id) => id.equals(memId));
-   if (!isMember) {
-      throw new Error(`${member.username} is not a member of the group.`);
-   }
-
-   // Prevent creator from removing themselves
-   if (group.creator.equals(memId)) {
-      throw new Error('Group creator cannot be removed.');
-   }
-
-   group.members = group.members.filter((id: Types.ObjectId) => !id.equals(memId));
-   await group.save();
-
-   //socket.io
-   const io = getSocketInstance();
-   const targetSocketId = userSocketMap.get(memberId);
-
-   if (targetSocketId) {
-      io.to(targetSocketId).emit('removeFromGroup', `You have been removed from Group ${group.name}`);
-   }
+   await produceRemoveToGroup(payload);
 
    return {
       success: true,
@@ -144,29 +127,42 @@ export const sendMessageToGroup = compose(ErrorHandling, isAuthenticated)(async 
       throw new Error('You are not a member of this group!');
    }
 
-   const gMessage = await GroupMessage.create({
+   const messageId = new mongoose.Types.ObjectId().toString();
+   const createdAt = new Date();
+
+   const payload = {
       groupId: groupObjectId,
       senderId: userObjectId,
-      content
-   });
+      messageId,
+      content,
+      createdAt
+   };
+
+   await produceGroupMessage(payload);
+
+   // const gMessage = await GroupMessage.create({
+   //    groupId: groupObjectId,
+   //    senderId: userObjectId,
+   //    content
+   // });
 
    // message-data
-   const messageData = {
-      _id: gMessage._id,
-      groupId: groupObjectId,
-      senderId: userObjectId,
-      content,
-      createdAt: gMessage.createdAt,
-      updatedAt: gMessage.updatedAt
-   }
+   // const messageData = {
+   //    _id: gMessage._id,
+   //    groupId: groupObjectId,
+   //    senderId: userObjectId,
+   //    content,
+   //    createdAt: gMessage.createdAt,
+   //    updatedAt: gMessage.updatedAt
+   // }
 
-   //socket.io
-   const io = getSocketInstance();
-   const targetSocketId = groupId;
+   // //socket.io
+   // const io = getSocketInstance();
+   // const targetSocketId = groupId;
 
-   if (targetSocketId) {
-      io.to(targetSocketId).emit('newGroupMessage', messageData);
-   }
+   // if (targetSocketId) {
+   //    io.to(targetSocketId).emit('newGroupMessage', messageData);
+   // }
 
    return {
       success: true,

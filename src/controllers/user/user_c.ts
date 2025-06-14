@@ -49,23 +49,32 @@ export const verifyANDregisterUser = async (req: Request, res: Response): Promis
       return;
    }
 
-   const { email, otp, username, password } = req.body;
+   // const { email, otp, username, password } = req.body;
+   const { email, username, password } = req.body;
 
    try {
-      const user = await User.findOne({ email });
+      // const user = await User.findOne({ email });
 
-      if (!user || user.otp !== otp || (user.otpExpiresAt && user.otpExpiresAt.getTime() < Date.now())) {
-         res.status(400).json({ success: false, message: 'Invalid or expired OTP' });
-         return;
-      }
+      // if (!user || user.otp !== otp || (user.otpExpiresAt && user.otpExpiresAt.getTime() < Date.now())) {
+      //    res.status(400).json({ success: false, message: 'Invalid or expired OTP' });
+      //    return;
+      // }
 
-      user.username = username;
-      user.password = await bcrypt.hash(password, 10);
-      user.isVerified = true;
-      user.otp = '';
-      user.otpExpiresAt = null;
+      // user.username = username;
+      // user.password = await bcrypt.hash(password, 10);
+      // user.isVerified = true;
+      // user.otp = '';
+      // user.otpExpiresAt = null;
 
-      await user.save();
+      // await user.save();
+
+      const bPassword = await bcrypt.hash(password, 10);      
+
+      const user = await User.create({
+        username,
+        email,
+        password: bPassword
+      });
 
       res.json({ success: true, message: 'User registered successfully' });
    } catch (err) {

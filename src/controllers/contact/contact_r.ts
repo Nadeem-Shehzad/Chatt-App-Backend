@@ -15,6 +15,7 @@ import {
 import { getSocketInstance } from "../../utils/socketInstance";
 import OnlineUser from "../../models/onlineUser";
 import { compose, ErrorHandling, isAuthenticated } from "../../middlewares/common";
+import { produceAcceptContactRequest } from "../../kafka/producer";
 
 
 
@@ -84,19 +85,13 @@ export const acceptContactRequest = async (_: any, { contactId }: { contactId: s
          return { success: false, message: 'Invalid Request.', data: null };
       }
 
-      contact.status = 'accepted';
-      await contact.save();
+      const payload = {
+         contactId,
+         receiverId: contact.receiver,
+         requesterId: contact.requester
+      };
 
-      // Notify the requester via Socket.IO
-      const io = getSocketInstance();
-      const requesterSocketId = userSocketMap.get(contact.requester.toString());
-
-      if (requesterSocketId) {
-         io.to(requesterSocketId).emit('contactAccepted', {
-            contactId: contact._id,
-            by: userId,
-         });
-      }
+      await produceAcceptContactRequest(payload);
 
       return { success: true, message: 'Contact request accepted', data: null };
 
