@@ -173,6 +173,7 @@ export interface IGroupMessage extends Document {
    _id: Types.ObjectId;
    groupId: Types.ObjectId;
    senderId: Types.ObjectId;
+   messageId: Types.ObjectId;
    content: string;
    seenBy: Types.ObjectId[];
    createdAt: Date,
