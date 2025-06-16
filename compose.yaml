@@ -14,9 +14,12 @@ services:
     depends_on:
       - mongo
       - kafka
+      - redis
     environment:
       - MONGO_URL=mongodb://mongo:27017/chatt-db
       - KAFKA_BROKER=10.0.2.15:9092
+      - REDIS_HOST=redis           # Add Redis env
+      - REDIS_PORT=6379
       - NODE_ENV=development
     command: npm run dev
 
@@ -53,5 +56,15 @@ services:
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
 
+  redis:                                # Redis Service
+    image: redis:7-alpine
+    container_name: redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: always    
+
 volumes:
   mongo-data:
+  redis_data:

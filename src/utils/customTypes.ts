@@ -6,6 +6,7 @@ export interface IUser extends Document {
    username: string;
    email: string;
    password: string;
+   image: string;
    lastSeen: Date;
    isVerified: boolean;
    otp: string;
@@ -169,6 +170,12 @@ export interface GroupResponse {
    data: IGroup | null
 }
 
+export interface GroupsResponse {
+   success: boolean;
+   message: string;
+   data: IGroup[] | null
+}
+
 export interface IGroupMessage extends Document {
    _id: Types.ObjectId;
    groupId: Types.ObjectId;
@@ -186,8 +193,45 @@ export interface GroupMessageResponse {
    data: IGroupMessage | null
 }
 
+interface GroupLastMessageInfo {
+   content: string;
+   sender: string;
+   createdAt: Date;
+}
+
+interface GroupLastMessage{
+   groupName: string;
+   lastMessage: GroupLastMessageInfo;
+}
+
+export interface UserGroupsResponse{
+   success: boolean;
+   message: string;
+   data: GroupLastMessage[]
+}
+
+interface GroupMessage{
+   content: string;
+   sender: string;
+   createdAt: Date
+}
+
+export interface GroupMessagesResponse{
+   success: boolean;
+   message: string;
+   data: GroupMessage[]
+}
+
 interface IUserMethods {
    isPasswordMatched(password: string): Promise<boolean>;
+}
+
+
+export interface RateLimitConfig {
+  keyPrefix: string;       // e.g. 'sendMessage', 'login'
+  limit: number;           // max allowed calls
+  windowInSeconds: number; // time window in seconds
+  getKey?: (args: any, context: MyContext) => string; // optional custom key function
 }
 
 

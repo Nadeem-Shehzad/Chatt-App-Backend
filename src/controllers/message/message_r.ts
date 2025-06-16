@@ -3,9 +3,10 @@ import Message from '../../models/message';
 import { IMessageDTO, MessageResponse, MessagesResponse, MyContext, AllChatsResponse, ChatSummary } from '../../utils/customTypes';
 import Contact from '../../models/contact';
 import { compose, ErrorHandling, isAuthenticated, checkContent } from '../../middlewares/common';
-import { checkContactStatus, sendNewContactRequest, sendMessageToReceiver } from '../../utils/utils';
+import { checkContactStatus } from '../../utils/utils';
 import User from '../../models/user';
 import { produceChatMessage, produceContactRequest, produceSaveInDB } from '../../kafka/producer';
+import { redisClient } from '../../config/redis';
 
 
 
@@ -87,6 +88,14 @@ export const sendMessage = compose(ErrorHandling, isAuthenticated, checkContent)
 export const getMessages = compose(ErrorHandling, isAuthenticated)(async (_: any, { receiverId }: { receiverId: string }, context: MyContext): Promise<MessagesResponse> => {
 
    const senderId = context.userId;
+   const chacheKey = `getUserMessages:${senderId}`;
+
+   const cachedMessages = await redisClient.get(chacheKey);
+   if (cachedMessages) {
+      console.log('getting messages from redis chache...');
+      return JSON.parse(cachedMessages);
+   }
+
    const messages = await Message.find({
       $or: [
          { sender: senderId, receiver: receiverId },
@@ -94,11 +103,15 @@ export const getMessages = compose(ErrorHandling, isAuthenticated)(async (_: any
       ]
    });
 
-   return {
+   const response = {
       success: true,
       message: 'All Messages',
       data: messages
-   };
+   }
+
+   await redisClient.set(chacheKey, JSON.stringify(response), { EX: 7200 });
+
+   return response;
 });
 
 

@@ -1,11 +1,19 @@
 import Group from "../models/group";
 import User from "../models/user";
-import { MyContext } from "../utils/customTypes";
+import { MyContext, RateLimitConfig } from "../utils/customTypes";
+import { rateLimiter } from "../utils/rateLimiter";
 
+
+// export const compose = (...middleware: Function[]) => {
+//    return middleware.reduce((a, b) => (args: any) => a(b(args)));
+// }
 
 export const compose = (...middleware: Function[]) => {
-   return middleware.reduce((a, b) => (args: any) => a(b(args)));
-}
+  return (resolver: Function) => {
+    return middleware.reduceRight((acc, fn) => fn(acc), resolver);
+  };
+};
+
 
 export const isAuthenticated = (resolverFunction: Function) => {
    return async (parent: any, args: any, context: MyContext, info: any) => {
@@ -66,3 +74,29 @@ export const groupExists = (resolver: Function) => {
       return resolver(parent, args, context, info);
    }
 }
+
+export const rateLimit = ({ keyPrefix, limit, windowInSeconds, getKey }: RateLimitConfig) => {
+   return (resolver: Function) => {
+      return async (parent: any, args: any, context: MyContext, info: any) => {
+      
+         const key = getKey ? getKey(args, context) : `${keyPrefix}:${context.userId ?? 'anonymous'}`;
+
+         const { allowed, remaining } = await rateLimiter({
+            key,
+            limit,
+            windowInSeconds,
+         });
+
+         if (!allowed) {
+            return {
+               success: false,
+               message: `Rate limit exceeded. Please try again later.`,
+               data: null,
+            };
+         }
+
+         // Call the original resolver
+         return resolver(parent, args, context, info);
+      };
+   };
+};

@@ -5,15 +5,16 @@ import { groupResolver } from "./group";
 
 
 export const resolvers = {
-    Query: {
-        ...userResolvers.Query,
-        ...contactResolver.Query,
-        ...messageResolvers.Query
-    },
-    Mutation: {
-        //...userResolvers.Mutation,
-        ...messageResolvers.Mutation,
-        ...contactResolver.Mutation,
-        ...groupResolver.Mutation
-    }
+   Query: {
+      ...userResolvers.Query,
+      ...contactResolver.Query,
+      ...messageResolvers.Query,
+      ...groupResolver.Query
+   },
+   Mutation: {
+      //...userResolvers.Mutation,
+      ...messageResolvers.Mutation,
+      ...contactResolver.Mutation,
+      ...groupResolver.Mutation
+   }
 }

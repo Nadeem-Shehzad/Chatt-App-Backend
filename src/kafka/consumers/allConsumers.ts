@@ -27,7 +27,7 @@ export const startAllKafkaConsumers = async () => {
          startRemoveMemberToGroupNotifyConsumer()
       ]);
 
-      console.log("All Kafka consumers started successfully."); 
+      console.log("✅✅✅All Kafka consumers started successfully."); 
    } catch (err) {
       console.error("Error starting Kafka consumers:");
    }

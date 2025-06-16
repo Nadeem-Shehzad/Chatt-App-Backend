@@ -10,6 +10,8 @@ import {
     resetPassword
 } from "../controllers/user/user_c";
 
+import { upload, updateFile, deleteFile } from '../controllers/File/file';
+
 import { authenticateToken } from "../middlewares/authMiddelware";
 
 import {
@@ -30,5 +32,10 @@ router.route('/update-password').put(authenticateToken, password_Validation, upd
 router.route('/forgot-password').post(forgotPassword);
 router.route('/reset-password').post(resetPassword);
 router.route('/logout').post(authenticateToken, logout);
+
+
+router.post('/upload', upload);
+router.put('/update', updateFile);
+router.delete('/delete', deleteFile);
 
 export default router;

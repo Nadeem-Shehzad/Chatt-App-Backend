@@ -50,7 +50,7 @@ export const verifyANDregisterUser = async (req: Request, res: Response): Promis
    }
 
    // const { email, otp, username, password } = req.body;
-   const { email, username, password } = req.body;
+   const { email, username, password, image } = req.body;
 
    try {
       // const user = await User.findOne({ email });
@@ -73,7 +73,8 @@ export const verifyANDregisterUser = async (req: Request, res: Response): Promis
       const user = await User.create({
         username,
         email,
-        password: bPassword
+        password: bPassword,
+        image
       });
 
       res.json({ success: true, message: 'User registered successfully' });

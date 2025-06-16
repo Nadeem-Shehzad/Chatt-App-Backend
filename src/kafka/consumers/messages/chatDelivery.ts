@@ -38,7 +38,7 @@ export const startChatDeliveryConsumer = async () => {
 
             // Safely update deliveredAt in DB
             await Message.findByIdAndUpdate(
-               new Types.ObjectId(parsed.messageId), // 💡 Strong typing
+               new Types.ObjectId(parsed.messageId), 
                { deliveredAt }
             );
             console.log(`Message delivered to ${parsed.receiverId} via socket.`);
