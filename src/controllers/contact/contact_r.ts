@@ -14,12 +14,13 @@ import {
 
 import { getSocketInstance } from "../../utils/socketInstance";
 import OnlineUser from "../../models/onlineUser";
-import { compose, ErrorHandling, isAuthenticated } from "../../middlewares/common";
+import { compose, ErrorHandling, isAuthenticated, rateLimit } from "../../middlewares/common";
 import { produceAcceptContactRequest } from "../../kafka/producer";
+import { redisClient } from "../../config/redis";
 
 
 
-export const sendContactRequest = async (_: any, { receiverId }: { receiverId: string }, context: MyContext): Promise<ContactResponse> => {
+export const sendContactRequest = compose(rateLimit({ keyPrefix: 'sendContactRequest', limit: 10, windowInSeconds: 60 })) (async (_: any, { receiverId }: { receiverId: string }, context: MyContext): Promise<ContactResponse> => {
    const senderId = context.userId;
 
    try {
@@ -72,7 +73,7 @@ export const sendContactRequest = async (_: any, { receiverId }: { receiverId: s
          data: null
       };
    }
-}
+})
 
 
 export const acceptContactRequest = async (_: any, { contactId }: { contactId: string }, context: MyContext): Promise<ContactResponse> => {
@@ -134,6 +135,14 @@ export const blockContact = async (_: any, { contactId }: { contactId: string },
 
 export const getContacts = async (_: any, __: any, context: MyContext): Promise<ContactsResponse> => {
    const userId = context.userId;
+   const cacheKey = `contacts:${userId}`;
+
+   const cachedContacts = await redisClient.get(cacheKey);
+   if (cachedContacts) {
+      console.log('getting data from redis...');
+      // Cache hit - parse and return
+      return JSON.parse(cachedContacts);
+   }
 
    const contacts = await Contact.find({
       $or: [
@@ -155,15 +164,20 @@ export const getContacts = async (_: any, __: any, context: MyContext): Promise<
       };
    });
 
-   return {
+   const response = {
       success: true,
       message: 'All Contacts',
       data: contactList
-   }
+   };
+
+   // 3. Store the response in Redis cache for 10 minutes (600 seconds)
+   await redisClient.set(cacheKey, JSON.stringify(response), { EX: 7200 });
+
+   return response;
 }
 
 
-export const getOnlineUsers = compose(ErrorHandling,isAuthenticated)(async (_: any, __: any, context: MyContext): Promise<OnlineUsersResponse> => {
+export const getOnlineUsers = compose(ErrorHandling, isAuthenticated)(async (_: any, __: any, context: MyContext): Promise<OnlineUsersResponse> => {
    const userId = context.userId;
 
    const onlineUsersRaw = await OnlineUser.find({ userId: { $ne: userId } })
@@ -171,9 +185,9 @@ export const getOnlineUsers = compose(ErrorHandling,isAuthenticated)(async (_: a
       .lean();
 
    const onlineUsers: IOnlineUser[] = onlineUsersRaw.map((e) => ({
-         _id: e.userId._id,
-         username: e.userId.username,
-      }));
+      _id: e.userId._id,
+      username: e.userId.username,
+   }));
 
    return {
       success: true,
